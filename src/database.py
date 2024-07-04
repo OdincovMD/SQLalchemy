@@ -8,7 +8,7 @@ from config import settings
 sync_engine = create_engine(  # создание синхронного подключения
     url=settings.DATABASE_URL_pymysql,
     # вывод всех запросов в консоль(для понимания, как работает sqlalchemy)
-    echo=True,
+    # echo=True,
     # pool_size=5, # пять подклкючений к базе данных максимум
     # max_overflow=10, # дополнительные подключения, если перебор по подключениям
 )

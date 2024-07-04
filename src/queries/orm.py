@@ -1,6 +1,7 @@
 from models import Base, WorkersOrm, ResumesOrm
 from database import session_factory, sync_engine
 from sqlalchemy import select, insert, func, cast, Integer, and_
+from sqlalchemy.orm import aliased
 
 
 class SyncOrm:
@@ -89,6 +90,38 @@ class SyncOrm:
                            ResumesOrm.title.contains("Python"),
                            ResumesOrm.compensation > 40000
                        )).group_by(ResumesOrm.workload)
+            )
+            # print(query.compile(compile_kwargs={"literal_binds" : True}))
+            result = session.execute(query)
+            print(result.all())
+    
+    @staticmethod
+    def join_cte_subquery_window_func(like_language : str = "Python"):
+        with session_factory() as session:
+            r = aliased(ResumesOrm)
+            w = aliased(ResumesOrm)
+            subq = (
+                select(
+                    r, 
+                    w,
+                    func.avg(r.compensation).over(partition_by=r.workload).cast(Integer).label("avg_py")
+                )
+                .select_from(w)
+                .join(r, r.worker_id == w.id).subquery("helper1") # full = True - cross, isouter= True - левый
+            )
+            cte = (
+                select(
+                    subq.c.worker_id,
+                    subq.c.compensation,
+                    subq.c.workload,
+                    subq.c.avg_py,
+                    (subq.c.compensation - subq.c.avg_py).label("comp_diff")
+                )
+                .subquery("helper2")
+            )
+            query = (
+                select(cte).
+                order_by(cte.c.comp_diff.desc())
             )
             # print(query.compile(compile_kwargs={"literal_binds" : True}))
             result = session.execute(query)
