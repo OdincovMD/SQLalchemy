@@ -1,7 +1,7 @@
 from models import Base, WorkersOrm, ResumesOrm
 from database import session_factory, sync_engine
 from sqlalchemy import select, insert, func, cast, Integer, and_
-from sqlalchemy.orm import aliased
+from sqlalchemy.orm import aliased, joinedload, selectinload
 
 
 class SyncOrm:
@@ -126,3 +126,35 @@ class SyncOrm:
             # print(query.compile(compile_kwargs={"literal_binds" : True}))
             result = session.execute(query)
             print(result.all())
+
+    @staticmethod
+    def select_workers_with_joined_relationship():
+        with session_factory() as session:
+            query = (
+                select(WorkersOrm).
+                options(joinedload(WorkersOrm.resumes)) #  подходит только для загрузки one to one; many to one
+            ) # проблема n+1 запроса(ленивый вид подгрузки) #  ленивая подругзка не используется при  assyn (всегда прописывать options)
+            result = session.execute(query)
+            result = result.unique().scalars().all() #только уникальные первичные ключи
+
+            worker_1_resumes = result[0].resumes
+            print(worker_1_resumes)
+
+            worker_2_resumes = result[1].resumes
+            print(worker_2_resumes)
+
+    @staticmethod
+    def select_workers_with_select_relationship():
+        with session_factory() as session:
+            query = (
+                select(WorkersOrm).
+                options(selectinload(WorkersOrm.resumes)) # меньше гоняется трафика подходит для для one to many; many to many
+            ) # проблема n+1 запроса(ленивый вид подгрузки)
+            result = session.execute(query)
+            result = result.unique().scalars().all() #только уникальные первичные ключи
+
+            worker_1_resumes = result[0].resumes
+            print(worker_1_resumes)
+
+            worker_2_resumes = result[1].resumes
+            print(worker_2_resumes)

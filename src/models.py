@@ -1,6 +1,6 @@
 from sqlalchemy import Table, Column, Integer,  MetaData, VARCHAR, ForeignKey, func, TIMESTAMP
 from database import Base
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 # import enum
 from datetime import datetime
 from typing import Annotated
@@ -39,6 +39,8 @@ class WorkersOrm(Base):  # декларативный стиль
     id: Mapped[intpk]
     username: Mapped[strmy]
 
+    resumes: Mapped[list["ResumesOrm"]] = relationship()
+
 # class Workload(enum):
 #     parttime = "partitme"
 #     fulltime = "fulltime"
@@ -61,3 +63,5 @@ class ResumesOrm(Base):
         server_default=func.current_timestamp(),
         onupdate=datetime.now()  # в случае обновления БД
     )
+
+    worker: Mapped["WorkersOrm"] = relationship()
