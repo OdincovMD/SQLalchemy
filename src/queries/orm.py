@@ -1,7 +1,7 @@
 from models import Base, WorkersOrm, ResumesOrm
 from database import session_factory, sync_engine
 from sqlalchemy import select, insert, func, cast, Integer, and_
-from sqlalchemy.orm import aliased, joinedload, selectinload
+from sqlalchemy.orm import aliased, joinedload, selectinload, contains_eager
 
 
 class SyncOrm:
@@ -158,3 +158,28 @@ class SyncOrm:
 
             worker_2_resumes = result[1].resumes
             print(worker_2_resumes)
+
+    @staticmethod
+    def select_workers_with_condition_relationship():
+        with session_factory() as session:
+            query = (
+                select(WorkersOrm).
+                options(selectinload(WorkersOrm.resumes_parttime)) 
+            )
+            result = session.execute(query)
+            result = result.unique().scalars().all() #только уникальные первичные ключи
+
+            print(result)
+
+    @staticmethod
+    def select_workers_with_contains_eager_relationship():
+        with session_factory() as session:
+            query = (
+                select(WorkersOrm).
+                join(WorkersOrm.resumes).
+                options(contains_eager(WorkersOrm.resumes)) #  резюме есть(уже подгрузили), sql их подтянет из таблицы, и сделает структуру вложенной(для указания  limit необходимо создать подзапрос и его уже связать с  contains_eager)
+            )
+            result = session.execute(query)
+            result = result.unique().scalars().all() #только уникальные первичные ключи
+
+            print(result)

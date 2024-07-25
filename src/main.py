@@ -19,4 +19,7 @@ SyncOrm.insert_resumes()
 # SyncOrm.select_resumes_avg()
 # SyncOrm.select_data()
 # SyncOrm.join_cte_subquery_window_func()
-SyncOrm.select_workers_with_joined_relationship()
+# SyncOrm.select_workers_with_joined_relationship()
+# SyncOrm.select_workers_with_condition_relationship()
+SyncOrm.select_workers_with_contains_eager_relationship()
+

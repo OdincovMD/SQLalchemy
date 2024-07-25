@@ -1,4 +1,4 @@
-from sqlalchemy import Table, Column, Integer,  MetaData, VARCHAR, ForeignKey, func, TIMESTAMP
+from sqlalchemy import Table, Column, Integer,  MetaData, VARCHAR, ForeignKey, func, TIMESTAMP, Index
 from database import Base
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 # import enum
@@ -39,7 +39,16 @@ class WorkersOrm(Base):  # декларативный стиль
     id: Mapped[intpk]
     username: Mapped[strmy]
 
-    resumes: Mapped[list["ResumesOrm"]] = relationship()
+    resumes: Mapped[list["ResumesOrm"]] = relationship(
+        back_populates="worker", # нужен для того, чтобы были правильные ссылки между relationship
+    )
+
+    resumes_parttime: Mapped[list["ResumesOrm"]] = relationship(
+        back_populates="worker", # нужен для того, чтобы были правильные ссылки между relationship
+        primaryjoin="and_(WorkersOrm.id == ResumesOrm.worker_id, ResumesOrm.workload == 'parttime')" ,# подгрузка только таких резюме
+        order_by="ResumesOrm.id.desc()",
+        # lazy="" # неявное указание подгрузки (так не делать)
+    )
 
 # class Workload(enum):
 #     parttime = "partitme"
@@ -64,4 +73,10 @@ class ResumesOrm(Base):
         onupdate=datetime.now()  # в случае обновления БД
     )
 
-    worker: Mapped["WorkersOrm"] = relationship()
+    worker: Mapped["WorkersOrm"] = relationship(
+        back_populates="resumes"
+    )
+
+    __table_args__ = (
+        Index("title_index", "title") # Можно использовать для добавления  индексов, превичных ключей проверок и прочеее
+    )
