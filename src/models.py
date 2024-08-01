@@ -1,7 +1,7 @@
 from sqlalchemy import Table, Column, Integer,  MetaData, VARCHAR, ForeignKey, func, TIMESTAMP, Index
 from database import Base
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-# import enum
+import enum
 from datetime import datetime
 from typing import Annotated
 
@@ -50,9 +50,9 @@ class WorkersOrm(Base):  # декларативный стиль
         # lazy="" # неявное указание подгрузки (так не делать)
     )
 
-# class Workload(enum):
-#     parttime = "partitme"
-#     fulltime = "fulltime"
+class Workload(enum.Enum):
+    parttime = "partitme"
+    fulltime = "fulltime"
 
 
 class ResumesOrm(Base):
@@ -77,6 +77,7 @@ class ResumesOrm(Base):
         back_populates="resumes"
     )
 
-    __table_args__ = (
-        Index("title_index", "title") # Можно использовать для добавления  индексов, превичных ключей проверок и прочеее
-    )
+    # __table_args__ = (
+    #     Index("title_index", "title") # Можно использовать для добавления  индексов, превичных ключей проверок и прочеее
+    # )
+

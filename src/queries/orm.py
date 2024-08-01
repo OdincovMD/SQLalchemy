@@ -2,6 +2,7 @@ from models import Base, WorkersOrm, ResumesOrm
 from database import session_factory, sync_engine
 from sqlalchemy import select, insert, func, cast, Integer, and_
 from sqlalchemy.orm import aliased, joinedload, selectinload, contains_eager
+from schemas import WorkersRelDTO, ResumesRelVacanciesRepliedWithoutVacancyCompensationDTO
 
 
 class SyncOrm:
@@ -183,3 +184,19 @@ class SyncOrm:
             result = result.unique().scalars().all() #только уникальные первичные ключи
 
             print(result)
+
+    @staticmethod
+    def convert_workers_to_dto():
+        with session_factory() as session:
+            query = (
+                select(WorkersOrm)
+                .options(selectinload(WorkersOrm.resumes))
+                .limit(2)
+            )
+
+            res = session.execute(query)
+            result_orm = res.scalars().all()
+            print(f"{result_orm=}")
+            result_dto = [WorkersRelDTO.model_validate(row, from_attributes=True) for row in result_orm]
+            print(f"{result_dto=}")
+            return result_dto
