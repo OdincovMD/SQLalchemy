@@ -1,4 +1,4 @@
-from models import Base, WorkersOrm, ResumesOrm
+from models import Base, WorkersOrm, ResumesOrm, VacanciesOrm, Workload
 from database import session_factory, sync_engine
 from sqlalchemy import select, insert, func, cast, Integer, and_
 from sqlalchemy.orm import aliased, joinedload, selectinload, contains_eager
@@ -14,27 +14,27 @@ class SyncOrm:
 
     @staticmethod
     def insert_data():
-        worker_bobr = WorkersOrm(username="Bobr")
-        worker_volk = WorkersOrm(username="Volk")
+        worker_1 = WorkersOrm(username="Василий")
+        worker_2 = WorkersOrm(username="Михаил")
         with session_factory() as session:
-            session.add(worker_bobr)  # добавление в сессию unit of work
-            session.add(worker_volk)
+            session.add(worker_1)  # добавление в сессию unit of work
+            session.add(worker_2)
             session.flush()  # отправляет все данные в базу данных, но не обновляет базу данных
             session.commit()
 
     @staticmethod
     def insert_resumes():
         with session_factory() as session:
-            resume_jack_1 = ResumesOrm(
-                title="Python Junior Developer", compensation=50000, workload="fulltime", worker_id=1)
-            resume_jack_2 = ResumesOrm(
-                title="Python Разработчик", compensation=150000, workload="fulltime", worker_id=1)
-            resume_michael_1 = ResumesOrm(
-                title="Python Data Engineer", compensation=250000, workload="fulltime", worker_id=2)
-            resume_michael_2 = ResumesOrm(
-                title="Data Scientist", compensation=300000, workload="fulltime", worker_id=2)
-            session.add_all([resume_jack_1, resume_jack_2,
-                             resume_michael_1, resume_michael_2])
+            resume_vas_1 = ResumesOrm(
+                title="Python Junior Developer", compensation=50000, workload=Workload.parttime, worker_id=1)
+            resume_vas_2 = ResumesOrm(
+                title="Python Разработчик", compensation=150000, workload=Workload.fulltime, worker_id=1)
+            resume_mic_1 = ResumesOrm(
+                title="Python Data Engineer", compensation=250000, workload=Workload.fulltime, worker_id=2)
+            resume_mic_2 = ResumesOrm(
+                title="Data Scientist", compensation=300000, workload=Workload.parttime, worker_id=2)
+            session.add_all([resume_vas_1, resume_vas_2,
+                             resume_mic_1, resume_mic_2])
             session.commit()
 
     @staticmethod
@@ -47,15 +47,15 @@ class SyncOrm:
             ]
             resumes = [
                 {"title": "Python программист", "compensation": 60000,
-                    "workload": "fulltime", "worker_id": 3},
+                    "workload": Workload.parttime, "worker_id": 3},
                 {"title": "Machine Learning Engineer", "compensation": 70000,
-                    "workload": "parttime", "worker_id": 3},
+                    "workload": Workload.fulltime, "worker_id": 3},
                 {"title": "Python Data Scientist", "compensation": 80000,
-                    "workload": "parttime", "worker_id": 4},
+                    "workload": Workload.fulltime, "worker_id": 4},
                 {"title": "Python Analyst", "compensation": 90000,
-                    "workload": "fulltime", "worker_id": 4},
+                    "workload": Workload.fulltime, "worker_id": 4},
                 {"title": "Python Junior Developer", "compensation": 100000,
-                    "workload": "fulltime", "worker_id": 5},
+                    "workload": Workload.parttime, "worker_id": 5},
             ]
             insert_workers = insert(WorkersOrm).values(workers)
             insert_resumes = insert(ResumesOrm).values(resumes)
@@ -73,7 +73,7 @@ class SyncOrm:
             print(f"{result.scalars().all()}")
 
     @staticmethod
-    def update_worker(worker_id: int = 2, new_username: str = "Misha"):
+    def update_worker(worker_id: int = 2, new_username: str = "Михаил"):
         with session_factory() as session:
             worker_michael = session.get(WorkersOrm, worker_id)
             worker_michael.username = new_username
@@ -129,7 +129,7 @@ class SyncOrm:
             print(result.all())
 
     @staticmethod
-    def select_workers_with_joined_relationship():
+    def select_workers_with_lazy_relationship():
         with session_factory() as session:
             query = (
                 select(WorkersOrm).
@@ -198,5 +198,31 @@ class SyncOrm:
             result_orm = res.scalars().all()
             print(f"{result_orm=}")
             result_dto = [WorkersRelDTO.model_validate(row, from_attributes=True) for row in result_orm]
+            print(f"{result_dto=}")
+            return result_dto
+        
+    @staticmethod
+    def add_vacancies_and_replices():
+        with session_factory() as session:
+            new_vacancy = VacanciesOrm(title="Python разработчик", compensation=100000)
+            resume_1 = session.get(ResumesOrm, 1)
+            resume_2 = session.get(ResumesOrm, 2)
+            resume_1.vacancies_replied.append(new_vacancy)
+            resume_2.vacancies_replied.append(new_vacancy)
+            session.commit()
+
+    @staticmethod
+    def select_resumes_with_all_relationship():
+        with session_factory() as session:
+            query  = (
+                select(ResumesOrm)
+                .options(joinedload(ResumesOrm.worker))
+                .options(selectinload(ResumesOrm.vacancies_replied).load_only(VacanciesOrm.title)) # только название
+            )
+
+            res = session.execute(query)
+            result_orm = res.scalars().all()
+            print(f"{result_orm=}")
+            result_dto = [ResumesRelVacanciesRepliedWithoutVacancyCompensationDTO.model_validate(row, from_attributes=True) for row in result_orm]
             print(f"{result_dto=}")
             return result_dto

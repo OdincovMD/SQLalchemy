@@ -28,6 +28,10 @@ resumes_table = Table(
            onupdate=datetime.now()),
 )
 
+
+
+
+
 # конструктор типов для сокращения кода
 intpk = Annotated[int, mapped_column(primary_key=True)]
 strmy = Annotated[str, mapped_column(VARCHAR(40))]
@@ -39,7 +43,7 @@ class WorkersOrm(Base):  # декларативный стиль
     id: Mapped[intpk]
     username: Mapped[strmy]
 
-    resumes: Mapped[list["ResumesOrm"]] = relationship(
+    resumes: Mapped[list["ResumesOrm"]] = relationship( # несколько резюме у одного человека
         back_populates="worker", # нужен для того, чтобы были правильные ссылки между relationship
     )
 
@@ -50,9 +54,11 @@ class WorkersOrm(Base):  # декларативный стиль
         # lazy="" # неявное указание подгрузки (так не делать)
     )
 
-class Workload(enum.Enum):
+
+class Workload(str, enum.Enum):
     parttime = "partitme"
     fulltime = "fulltime"
+
 
 
 class ResumesOrm(Base):
@@ -61,7 +67,7 @@ class ResumesOrm(Base):
     id: Mapped[intpk]
     title: Mapped[strmy]
     compensation: Mapped[int | None]  # либо mapped_column(nullable=True)
-    workload: Mapped[strmy] = mapped_column(default="partitme")
+    workload: Mapped[strmy] = mapped_column(default=Workload.parttime)
     worker_id: Mapped[int] = mapped_column(
         ForeignKey("workers.id", ondelete="CASCADE"))
     created_at: Mapped[datetime] = mapped_column(
@@ -78,6 +84,37 @@ class ResumesOrm(Base):
     )
 
     # __table_args__ = (
-    #     Index("title_index", "title") # Можно использовать для добавления  индексов, превичных ключей проверок и прочеее
+    #     Index("title_index", "title"), # Можно использовать для добавления  индексов, первичных ключей проверок и прочеее
     # )
 
+    vacancies_replied:  Mapped[list["VacanciesOrm"]] = relationship(
+        back_populates="resumes_replied",
+        secondary="vacancies_replies" # таблица, через которую делается связь many2many
+    )
+
+
+class VacanciesOrm(Base):
+    __tablename__ = "vacancies"
+
+    id: Mapped[intpk]
+    title: Mapped[strmy]
+    compensation: Mapped[int | None]
+
+    resumes_replied: Mapped[list["ResumesOrm"]] = relationship(
+        back_populates="vacancies_replied",
+        secondary="vacancies_replies" # таблица, через которую делается связь many2many
+    )
+
+
+class VacanciesRepliesOrm(Base):
+    __tablename__ = "vacancies_replies"
+    resume_id: Mapped[int] = mapped_column(
+        ForeignKey("resumes.id", ondelete="CASCADE"),
+        primary_key=True
+    )
+    vacancy_id: Mapped[int] = mapped_column(
+        ForeignKey("vacancies.id", ondelete="CASCADE"),
+        primary_key=True, 
+    )
+
+    cover_letter : Mapped[strmy | None]

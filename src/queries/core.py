@@ -1,4 +1,4 @@
-from sqlalchemy import text, insert, select, delete, update
+from sqlalchemy import text, insert, select, delete, update, func, cast, Integer, and_
 from database import sync_engine, session_factory
 from models import metadata_obj, WorkersOrm, Base, workers_table, resumes_table
 
@@ -18,8 +18,8 @@ class SyncCore:
             # ('Michael');
             # """
             stmt = insert(workers_table).values([  # использование query билдера
-                {"username": "Bobr"},
-                {"username": "Volk"},
+                {"username": "Василий"},
+                {"username": "Михаил"},
             ]
             )
             conn.execute(stmt)
@@ -76,7 +76,7 @@ class SyncCore:
             print(f"{result.all()}")
 
     @staticmethod
-    def update_worker(worker_id: int = 2, new_username: str = "Misha"):
+    def update_worker(worker_id: int = 2, new_username: str = "Михаил"):
         with sync_engine.connect() as conn:
             # stmt = text("UPDATE workers SET username=:username WHERE id=:id")
             # stmt = stmt.bindparams(username=new_username, id=worker_id) # такой синтакисис с маржовым оператором позвоялет биндить пармаетры
@@ -88,3 +88,19 @@ class SyncCore:
             )
             conn.execute(stmt)
             conn.commit()
+
+    @staticmethod
+    def select_resumes_avg_compensation():
+        with sync_engine.connect() as conn:
+            query = (
+                select(
+                    # 1 вариант использования cast
+                    # cast(func.avg(ResumesOrm.compensation), Integer).label("avg_compensation"),
+                    # 2 вариант использования cast (предпочтительный способ)
+                    func.avg(resumes_table.c.compensation).cast(Integer).label("avg_compensation"),
+                )
+                .select_from(resumes_table)
+            )
+            res = conn.execute(query)
+            result = res.all()
+            print(result[0].avg_compensation)

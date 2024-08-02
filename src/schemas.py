@@ -13,6 +13,9 @@ class WorkersDTO(WorkersAddDTO):
     id: int
 
 class ResumesAddDTO(BaseModel):
+
+    model_config = ConfigDict(use_enum_values=True)
+    
     title: str
     compensation: Optional[int]
     workload: Workload
